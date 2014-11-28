@@ -65,7 +65,7 @@ end
 
 post '/users/new' do 
 	user_data = JSON.parse(request.body.read)
-	user_data["gravatar"], user_data["last_seen"] = Gravatar.new(user_data["email"], :secure=>true).image_url, Time.new(0)
+	user_data["gravatar"], user_data["last_seen"] = Gravatar.new(user_data["email"], :secure => "true").image_url, Time.new(0)
 	settings.mongo_db['users'].insert user_data
 	{success: 200}.to_json
 end
