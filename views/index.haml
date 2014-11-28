@@ -1,0 +1,72 @@
+
+.container{:"ng-controller" => "AppCtrl"}
+
+  
+  = partial :_new_user
+
+  .row
+    %h1.text-center Who's In?
+
+  .row{style: "margin-top: 100px"}
+    .col-md-2
+    .col-md-8{style: "margin-left: 50px"}
+
+      .hexagons{:"ng-hide" => "people", style: "margin-left: 160px"}
+        .hex.hex-gap{:"data-target" => "#myModal", :"data-toggle" => "modal"}
+          .corner-1
+          .corner-2
+
+      .hexagons{:"ng-repeat" => "person in people"}
+        .hex{style: "background-image: url({{person.gravatar}})", :"ng-class" => "{'hex-gap': shouldCreateGap($index), 'absent': !person.present}", :"data-target" => "$last ? '#myModal' : '' ", :"data-toggle" => "$last ? 'modal' : ''"}
+
+          %a{href:"#", tooltip: "{{person.name}} is {{ person.present ? 'in!' : 'away' }} Last Seen: {{person.last_seen | date:'short'}}", :"ng-hide" => "$last"}
+
+          %a{:"ng-show" => "$last",  "data-target" => "#myModal", "data-toggle" => "modal"}
+          .corner-1
+          .corner-2
+
+    .col-md-2
+
+:javascript
+
+  angular.module('WhosIn', ['pusher-angular', 'ui.bootstrap']).controller('AppCtrl', function($scope, $pusher, $http){
+
+    var pusherKey = '#{ ENV["PUSHER_URL"].split("/")[2].split(":").first  || ENV["WHOS_IN_KEY"]}'
+
+    var client = new Pusher(pusherKey);
+    var pusher = $pusher(client);
+    var peopleChannel = pusher.subscribe('people_channel');
+
+    $scope.user = {}
+
+    peopleChannel.bind('people_event', function(data){
+      $scope.people = data;
+      if (data.length > 0) $scope.people.push({gravatar: 'http://xeogame.com/sites/xeogame.com/files/add_friends_icon.jpg'});
+    });
+
+    $scope.createNewUser = function(){
+      $http.post('/users/new', $scope.user).then(function(){ $scope.user = {} })
+    };
+
+    $scope.fields = [
+      "Name",
+      "MAC",
+      "Email"
+    ];
+
+    $scope.shouldCreateGap = function(index){
+      var range = _.range(1, 100)
+      var turningPoints = _.map(range, function(number){
+        return (7*number) - 3
+      });
+      return _.contains(turningPoints, index)
+    };
+
+    $scope.submitWithKeyPress = function(event){
+      if (event.keyCode === 13) {
+        $scope.createNewUser();
+        angular.element('#myModal').modal('hide');
+      }
+    }
+
+  });
